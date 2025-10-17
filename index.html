@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HL7 v2.x Message Editor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --hl7-segment: #6366f1; /* indigo-500 */
+            --hl7-field: #22c55e; /* green-500 */
+            --hl7-component: #f97316; /* orange-500 */
+            --hl7-subcomponent: #3b82f6; /* blue-500 */
+            --hl7-repetition: #a855f7; /* purple-500 */
+            --hl7-escape: #ef4444; /* red-500 */
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc; /* slate-50 */
+        }
+
+        .font-mono {
+            font-family: 'Fira Code', monospace;
+        }
+        
+        /* Custom scrollbar for better aesthetics */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #e2e8f0; /* slate-200 */
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #94a3b8; /* slate-400 */
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b; /* slate-500 */
+        }
+        
+        .hl7-tooltip {
+            position: relative;
+            display: inline-block;
+        }
+
+        .hl7-tooltip .tooltiptext {
+            visibility: hidden;
+            width: max-content;
+            background-color: #1e293b; /* slate-800 */
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px 10px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.8rem;
+        }
+        
+        .hl7-tooltip .tooltiptext::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #1e293b transparent transparent transparent;
+        }
+
+        .hl7-tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /* Highlighting styles */
+        .segment.highlight, .field.highlight, .component.highlight, .subcomponent.highlight, .repetition-item.highlight {
+            background-color: #fef9c3; /* yellow-100 */
+            outline: 1px solid #facc15; /* yellow-400 */
+            transition: background-color 0.1s ease-in-out;
+        }
+
+        .segment.selected, .field.selected, .component.selected, .subcomponent.selected, .repetition-item.selected {
+            background-color: #dbeafe; /* blue-100 */
+            outline: 2px solid #3b82f6; /* blue-500 */
+            font-weight: 500;
+        }
+        
+        .drag-over {
+            border-style: dashed;
+            border-color: #3b82f6; /* blue-500 */
+            background-color: #eff6ff; /* blue-50 */
+        }
+
+        #rawViewDisplay .raw-field.selected {
+            background-color: #dbeafe; /* blue-100 */
+        }
+         #rawViewDisplay .raw-field:hover {
+            background-color: #fef9c3; /* yellow-100 */
+            cursor: pointer;
+        }
+        
+        /* Dark Mode Styles */
+        .dark {
+            --hl7-segment: #818cf8; /* indigo-400 */
+            --hl7-field: #4ade80; /* green-400 */
+            --hl7-component: #fb923c; /* orange-400 */
+            --hl7-subcomponent: #60a5fa; /* blue-400 */
+            --hl7-repetition: #c084fc; /* purple-400 */
+            --hl7-escape: #f87171; /* red-400 */
+        }
+        .dark body {
+            background-color: #0f172a; /* slate-900 */
+            color: #cbd5e1; /* slate-300 */
+        }
+        .dark header,
+        .dark #dropZone,
+        .dark #structuredView,
+        .dark #detailsPanel,
+        .dark #messageInfo {
+            background-color: #1e293b; /* slate-800 */
+            border-color: #334155; /* slate-700 */
+        }
+        .dark #hl7Input,
+        .dark #detailValue,
+        .dark #templateDropdown {
+            background-color: #334155;
+            color: #e2e8f0; /* slate-200 */
+            caret-color: #f8fafc;
+        }
+        .dark #hl7Input::placeholder {
+            color: #64748b; /* slate-500 */
+        }
+        .dark h1, .dark h2 {
+            color: #e2e8f0; /* slate-200 */
+        }
+        .dark #placeholder, .dark #detailsPlaceholder {
+            color: #64748b; /* slate-500 */
+        }
+        .dark .segment.selected, 
+        .dark .field.selected, 
+        .dark .component.selected, 
+        .dark .subcomponent.selected, 
+        .dark .repetition-item.selected,
+        .dark #rawViewDisplay .raw-field.selected {
+            background-color: #334155; /* slate-700 */
+            outline-color: #60a5fa; /* blue-400 */
+        }
+        .dark .segment.highlight, 
+        .dark .field.highlight, 
+        .dark .component.highlight, 
+        .dark .subcomponent.highlight, 
+        .dark .repetition-item.highlight,
+         .dark #rawViewDisplay .raw-field:hover {
+            background-color: #475569; /* slate-600 */
+            outline-color: #ca8a04; /* yellow-600 */
+        }
+        .dark #detailPath {
+            background-color: #334155;
+            color: #818cf8;
+        }
+        .dark label,
+        .dark .segment-name .font-normal {
+            color: #94a3b8; /* slate-400 */
+        }
+        .dark .field-label {
+            color: #94a3b8;
+        }
+        .dark .hl7-tooltip .tooltiptext {
+            background-color: #f8fafc; /* slate-50 */
+            color: #1e293b; /* slate-800 */
+        }
+        .dark .hl7-tooltip .tooltiptext::after {
+            border-color: #f8fafc transparent transparent transparent;
+        }
+        .dark ::-webkit-scrollbar-track {
+            background: #334155; /* slate-700 */
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: #64748b; /* slate-500 */
+        }
+        .dark ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; /* slate-400 */
+        }
+        
+        .segment.collapsed .fields-container {
+            display: none;
+        }
+        .chevron-icon {
+            transition: transform 0.2s ease-in-out;
+        }
+        .segment.collapsed .chevron-icon {
+            transform: rotate(-90deg);
+        }
+
+    </style>
+</head>
+<body class="text-slate-800">
+    <div class="flex flex-col h-screen">
+        <!-- Header -->
+        <header class="bg-white border-b border-slate-200 p-3 flex items-center justify-between shadow-sm flex-shrink-0">
+            <div class="flex items-center space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                <h1 class="text-xl font-semibold text-slate-700">HL7 v2.x Message Editor</h1>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button id="darkModeToggle" class="p-2 rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700 dark:text-slate-400 dark:hover:text-slate-200">
+                    <svg id="sunIcon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                    <svg id="moonIcon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                    </svg>
+                </button>
+                <div class="relative">
+                    <select id="templateDropdown" class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 text-sm font-medium appearance-none cursor-pointer">
+                        <option value="" disabled selected>Message Templates</option>
+                        <option value="ADT_A01">ADT^A01 (Admit)</option>
+                        <option value="ORM_O01">ORM^O01 (Order)</option>
+                        <option value="ORU_R01">ORU^R01 (Observation)</option>
+                    </select>
+                </div>
+                <button id="openFileBtn" class="px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 text-sm font-medium">Open File</button>
+                <input type="file" id="fileInput" accept=".hl7,.txt" class="hidden">
+                <button id="exportBtn" class="px-4 py-2 bg-slate-600 text-white rounded-md hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed">Export to HL7</button>
+                <button id="clearBtn" class="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-400 text-sm font-medium">Clear</button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-grow flex flex-col lg:flex-row gap-4 p-4 min-h-0">
+            <!-- Left: Raw Input -->
+            <div class="w-full lg:w-5/12 flex flex-col">
+                <div class="flex-shrink-0 mb-2 flex items-center justify-between">
+                    <h2 class="text-lg font-medium text-slate-600">Raw HL7 Input</h2>
+                 </div>
+                <div id="dropZone" class="h-1/2 bg-white border-2 border-slate-300 rounded-lg shadow-sm p-1 transition-all relative">
+                    <textarea id="hl7Input" class="w-full h-full font-mono text-sm border-0 rounded-md resize-none focus:ring-0" placeholder="Paste or drop an HL7 message here..."></textarea>
+                    <div id="rawViewDisplay" class="w-full h-full font-mono text-sm absolute top-0 left-0 p-2.5 hidden overflow-auto whitespace-pre"></div>
+                </div>
+                 <div id="messageInfo" class="mt-2 p-2 bg-white border-2 border-slate-200 rounded-lg text-xs hidden">
+                    <p><span class="font-semibold text-slate-600">Message Type:</span> <span id="messageTypeDesc"></span></p>
+                    <p><span class="font-semibold text-slate-600">Trigger Event:</span> <span id="triggerEventDesc"></span></p>
+                </div>
+            </div>
+
+            <!-- Middle: Structured View -->
+            <div class="w-full lg:w-4/12 flex flex-col">
+                <h2 class="flex-shrink-0 text-lg font-medium text-slate-600 mb-2">Structured View</h2>
+                <div id="structuredView" class="flex-grow bg-white border-2 border-slate-300 rounded-lg shadow-sm p-4 overflow-auto min-h-0">
+                    <div id="placeholder" class="text-slate-400 h-full flex items-center justify-center">
+                        Parse a message to see the structured view.
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Right: Details Panel -->
+            <div class="w-full lg:w-3/12 flex flex-col">
+                <h2 class="flex-shrink-0 text-lg font-medium text-slate-600 mb-2">Details</h2>
+                <div id="detailsPanel" class="flex-grow bg-white border-2 border-slate-300 rounded-lg shadow-sm p-4 overflow-auto min-h-0">
+                    <div id="detailsPlaceholder" class="text-slate-400 h-full flex items-center justify-center">
+                        Select an element to see details.
+                    </div>
+                     <div id="detailsContent" class="hidden space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-500">Path</label>
+                            <p id="detailPath" class="font-mono text-sm bg-slate-100 p-2 rounded-md text-indigo-700"></p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-500">Description</label>
+                            <p id="detailDescription" class="text-sm text-slate-700"></p>
+                        </div>
+                        <div>
+                            <label for="detailValue" class="block text-sm font-medium text-slate-500">Value</label>
+                            <textarea id="detailValue" rows="2" class="w-full font-mono text-sm border border-slate-300 rounded-md p-2 focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <button id="applyChangesBtn" class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed" disabled>Apply</button>
+                            <button id="undoChangesBtn" class="w-full px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed" disabled>Undo</button>
+                        </div>
+                        <div id="detailedComponentsContainer" class="hidden">
+                            <label class="block text-sm font-medium text-slate-500">Detailed Components</label>
+                            <div id="detailedComponentsList" class="space-y-1 mt-1"></div>
+                        </div>
+                        <div id="componentsContainer" class="hidden">
+                            <label class="block text-sm font-medium text-slate-500">Components</label>
+                            <div id="componentsList" class="space-y-1 mt-1"></div>
+                        </div>
+                        <div id="subcomponentsContainer" class="hidden">
+                             <label class="block text-sm font-medium text-slate-500">Sub-components</label>
+                             <div id="subcomponentsList" class="space-y-1 mt-1"></div>
+                        </div>
+                     </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- DOM Elements ---
+        const hl7Input = document.getElementById('hl7Input');
+        const exportBtn = document.getElementById('exportBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const openFileBtn = document.getElementById('openFileBtn');
+        const fileInput = document.getElementById('fileInput');
+        const dropZone = document.getElementById('dropZone');
+        const rawViewDisplay = document.getElementById('rawViewDisplay');
+        const structuredView = document.getElementById('structuredView');
+        const placeholder = document.getElementById('placeholder');
+        const detailsPanel = document.getElementById('detailsPanel');
+        const detailsPlaceholder = document.getElementById('detailsPlaceholder');
+        const detailsContent = document.getElementById('detailsContent');
+        const detailPath = document.getElementById('detailPath');
+        const detailDescription = document.getElementById('detailDescription');
+        const detailValue = document.getElementById('detailValue');
+        const componentsContainer = document.getElementById('componentsContainer');
+        const componentsList = document.getElementById('componentsList');
+        const subcomponentsContainer = document.getElementById('subcomponentsContainer');
+        const subcomponentsList = document.getElementById('subcomponentsList');
+        const detailedComponentsContainer = document.getElementById('detailedComponentsContainer');
+        const detailedComponentsList = document.getElementById('detailedComponentsList');
+        const applyChangesBtn = document.getElementById('applyChangesBtn');
+        const undoChangesBtn = document.getElementById('undoChangesBtn');
+        const messageInfo = document.getElementById('messageInfo');
+        const messageTypeDesc = document.getElementById('messageTypeDesc');
+        const triggerEventDesc = document.getElementById('triggerEventDesc');
+        const darkModeToggle = document.getElementById('darkModeToggle');
+        const sunIcon = document.getElementById('sunIcon');
+        const moonIcon = document.getElementById('moonIcon');
+        const templateDropdown = document.getElementById('templateDropdown');
+
+        // --- State Management ---
+        let parsedMessage = null;
+        let selectedElement = null;
+        let hl7Dictionary = {};
+        let originalFieldValue = null;
+
+        // --- HL7 Data Dictionaries ---
+        const messageTypes = {
+            "ACK": "General Acknowledgment", "ADT": "Admit, Discharge, Transfer", "BAR": "Add/Change Billing Account",
+            "DFT": "Detailed Financial Transaction", "MDM": "Medical Document Management", "MFN": "Master Files Notification",
+            "ORM": "Order Message (General)", "ORU": "Observation Result (Unsolicited)", "QRY": "Query",
+            "RAS": "Pharmacy/Treatment Administration", "RDE": "Pharmacy/Treatment Encoded Order", "RGV": "Pharmacy/Treatment Give",
+            "SIU": "Scheduling Information Unsolicited", "OMG": "General Clinical Order", "OML": "Laboratory Order",
+            "ORR": "Order Response", "OMP": "Pharmacy/Treatment Order", "RTB": "Tabular Response",
+            "VXX": "Vaccine Information", "VXU": "Unsolicited Vaccination Record Update", "RDS": "Pharmacy/Treatment Dispense Message"
+        };
+        const triggerEvents = {
+            "A01": "Admit/Visit Notification", "A02": "Transfer a Patient", "A03": "Discharge/End Visit",
+            "A04": "Register a Patient", "A05": "Pre-admit a Patient", "A06": "Transfer an Outpatient to Inpatient",
+            "A07": "Transfer an Inpatient to Outpatient", "A08": "Update Patient Information", "A11": "Cancel Admit",
+            "A12": "Cancel Transfer", "A13": "Cancel Discharge", "A28": "Add Person Information", "A31": "Update Person Information",
+            "O01": "Order Message", "O02": "Order Response", "O03": "Diet Order", "O04": "Diet Order Response",
+            "R01": "Unsolicited Transmission of an Observation", "P03": "Post Detail Financial Transaction",
+            "S12": "New Appointment Booking", "S13": "Appointment Rescheduling", "S14": "Appointment Modification", "S15": "Appointment Cancellation",
+            "T02": "Document Status Change", "T12": "Update Medical Document", "V04": "Vaccination Record Response"
+        };
+        const messageTemplates = {
+            "ADT_A01": "MSH|^~\\&|SENDING_APP|SENDING_FACILITY|RECEIVING_APP|RECEIVING_FACILITY|20251017092600||ADT^A01|MSGID00001|P|2.3\rPID|1||1234567^^^MRN|ALT_ID_123|Doe^John^A^Jr.|Smith|19900101|M||CA|123 Main St^^Anytown^CA^90210||(555)555-1212\rPV1|1|I|2000^201^1||||1234^Smith^John^F|||SUR|||||ADM|20251017092600",
+            "ORM_O01": "MSH|^~\\&|HIS|HOSPITAL|LIS|LAB|20251017092600||ORM^O01|MSGID00002|P|2.3\rPID|1||1234567\rORC|NW|PLACER_ORDER_123\rOBR|1|PLACER_ORDER_123||15002-1^GLUCOSE^LN|||20251017092600",
+            "ORU_R01": "MSH|^~\\&|LIS|LAB|HIS|HOSPITAL|20251017092600||ORU^R01|MSGID00003|P|2.3\rPID|1||1234567\rOBR|1|||15002-1^GLUCOSE^LN\rOBX|1|NM|15002-1^GLUCOSE^LN||100|mg/dL|70-110|N||F"
+        };
+        
+        const loadDictionary = async () => {
+            hl7Dictionary = {
+                "MSH": { "desc": "Message Header", "fields": {
+                    "1": "Field Separator", "2": "Encoding Characters", "3": "Sending Application", "4": "Sending Facility",
+                    "5": "Receiving Application", "6": "Receiving Facility", "7": "Date/Time of Message", "8": "Security",
+                    "9": { "desc": "Message Type", "type": "MSG", "components": { "1": "Message Code", "2": "Trigger Event", "3": "Message Structure" }},
+                    "10": "Message Control ID", "11": "Processing ID", "12": "Version ID"
+                }},
+                "PID": { "desc": "Patient Identification", "fields": {
+                    "1": "Set ID - PID", "2": "Patient ID", 
+                    "3": { "desc": "Patient Identifier List", "type": "CX", "components": { 
+                        "1": "ID Number", "2": "Check Digit", "3": "Check Digit Scheme", 
+                        "4": { "desc": "Assigning Authority", "type": "HD", "subcomponents": { "1": "Namespace ID", "2": "Universal ID", "3": "Universal ID Type" }},
+                        "5": "Identifier Type Code"
+                    }},
+                    "4": "Alternate Patient ID - PID",
+                    "5": { "desc": "Patient Name", "type": "XPN", "components": { "1": "Family Name", "2": "Given Name", "3": "Second Name", "4": "Suffix", "5": "Prefix", "6": "Degree" }},
+                    "6": "Mother's Maiden Name", "7": "Date/Time of Birth", "8": "Administrative Sex", "9": "Patient Alias", "10": "Race",
+                    "11": { "desc": "Patient Address", "type": "XAD", "components": { "1": "Street Address", "2": "Other Designation", "3": "City", "4": "State or Province", "5": "Zip or Postal Code", "6": "Country" }},
+                    "12": "County Code", "13": "Phone Number - Home", "14": "Phone Number - Business", "15": "Primary Language", "16": "Marital Status", "17": "Religion",
+                    "18": "Patient Account Number", "19": "SSN Number - Patient"
+                }},
+                "PV1": { "desc": "Patient Visit", "fields": {
+                    "1": "Set ID - PV1", "2": "Patient Class", 
+                    "3": { "desc": "Assigned Patient Location", "type": "PL", "components": { "1": "Point of Care", "2": "Room", "3": "Bed", "4": "Facility", "5": "Location Status" }},
+                    "4": "Admission Type", "5": "Preadmit Number", "6": "Prior Patient Location", 
+                    "7": { "desc": "Attending Doctor", "type": "XCN", "components": { "1": "ID Number", "2": "Family Name", "3": "Given Name", "4": "Second Name", "5": "Suffix", "6": "Prefix" }},
+                    "8": "Referring Doctor", "9": "Consulting Doctor", "10": "Hospital Service", "11": "Temporary Location", "12": "Preadmit Test Indicator", "13": "Re-admission Indicator",
+                    "14": "Admit Source", "15": "Ambulatory Status", "16": "VIP Indicator", "17": "Admitting Doctor", "18": "Patient Type", "19": "Visit Number", "44": "Admit Date/Time", "45": "Discharge Date/Time"
+                }},
+                "ORC": { "desc": "Common Order", "fields": { "1": "Order Control", "2": "Placer Order Number", "3": "Filler Order Number", "9": "Date/Time of Transaction" }},
+                "OBR": { "desc": "Observation Request", "fields": { 
+                    "1": "Set ID - OBR", 
+                    "4": { "desc": "Universal Service Identifier", "type": "CE", "components": { "1": "Identifier", "2": "Text", "3": "Name of Coding System" }},
+                    "7": "Observation Date/Time", "16": "Ordering Provider" }},
+                "OBX": { "desc": "Observation/Result", "fields": { 
+                    "1": "Set ID - OBX", "2": "Value Type", 
+                    "3": { "desc": "Observation Identifier", "type": "CWE", "components": {
+                        "1": "Identifier", "2": "Text", "3": "Name of Coding System",
+                        "4": "Alternate Identifier", "5": "Alternate Text", "6": "Name of Alternate Coding System",
+                        "7": { "desc": "Coding System Version ID", "subcomponents": { "1": "Version ID" }}
+                    }},
+                    "4": "Observation Sub-ID", "5": "Observation Value", 
+                    "6": { "desc": "Units", "type": "CE", "components": { "1": "Identifier", "2": "Text", "3": "Name of Coding System" }},
+                    "7": "References Range", "8": "Abnormal Flags", "11": "Observation Result Status", "14": "Date/Time of the Observation" }},
+                "NK1": { "desc": "Next of Kin", "fields": { "1": "Set ID", "2": "Name", "3": "Relationship", "4": "Address", "5": "Phone Number" }},
+                "IN1": { "desc": "Insurance", "fields": { "1": "Set ID", "2": "Insurance Plan ID", "3": "Insurance Company ID", "4": "Insurance Company Name" }},
+                "DG1": { "desc": "Diagnosis", "fields": { "1": "Set ID", "2": "Diagnosis Coding Method", "3": "Diagnosis Code", "4": "Diagnosis Description" }},
+                "GT1": { "desc": "Guarantor", "fields": { "1": "Set ID", "2": "Guarantor Number", "3": "Guarantor Name", "4": "Guarantor Spouse Name" }},
+                "AL1": { "desc": "Patient Allergy Information", "fields": {
+                    "1": "Set ID - AL1", "2": "Allergen Type Code", 
+                    "3": { "desc": "Allergen Code/Mnemonic/Description", "type": "CWE", "components": { "1": "Identifier", "2": "Text", "3": "Name of Coding System" }},
+                    "4": "Allergy Severity Code", "5": "Allergy Reaction Code", "6": "Identification Date"
+                }},
+                "NTE": { "desc": "Notes and Comments", "fields": {
+                    "1": "Set ID - NTE", "2": "Source of Comment", "3": "Comment", "4": "Comment Type"
+                }},
+                "RXA": { "desc": "Pharmacy/Treatment Administration", "fields": {
+                    "1": "Give Sub-ID Counter", "2": "Administration Sub-ID Counter", "3": "Date/Time Start of Administration", "4": "Date/Time End of Administration",
+                    "5": { "desc": "Administered Code", "type": "CWE", "components": { "1": "Identifier", "2": "Text", "3": "Name of Coding System" }},
+                    "6": "Administered Amount", "7": "Administered Units"
+                }},
+                "RXE": { "desc": "Pharmacy/Treatment Encoded Order", "fields": {
+                    "1": "Quantity/Timing", 
+                    "2": { "desc": "Give Code", "type": "CWE", "components": { "1": "Identifier", "2": "Text", "3": "Name of Coding System" }},
+                    "3": "Give Amount - Minimum", "4": "Give Amount - Maximum",
+                    "5": { "desc": "Give Units", "type": "CWE", "components": { "1": "Identifier", "2": "Text", "3": "Name of Coding System" }}
+                }}
+            };
+        };
+
+        // --- Parsing Logic ---
+        const parseHL7 = (message) => {
+            if (!message || !message.startsWith('MSH')) {
+                if (message.trim() !== '') console.error('Invalid HL7 message. Must start with MSH segment.');
+                return null;
+            }
+            message = message.replace(/[\r\n]+/g, '\r').trim();
+            const fieldSep = message[3];
+            const encodingChars = message.substring(4, 8);
+            const [componentSep, repetitionSep, escapeChar, subcomponentSep] = encodingChars.split('');
+            const delimiters = { fieldSep, componentSep, repetitionSep, escapeChar, subcomponentSep };
+
+            const createSimpleField = value => ({ value, repetitions: [{ value, components: [{ value, subcomponents: [{ value }] }] }] });
+            const parseComplexField = fieldStr => ({
+                value: fieldStr,
+                repetitions: fieldStr.split(repetitionSep).map(repStr => ({
+                    value: repStr,
+                    components: repStr.split(componentSep).map(compStr => ({
+                        value: compStr,
+                        subcomponents: compStr.split(subcomponentSep).map(subcompStr => ({ value: subcompStr }))
+                    }))
+                }))
+            });
+
+            return {
+                delimiters,
+                segments: message.split('\r').map(segStr => {
+                    const fields = segStr.split(fieldSep);
+                    const segmentName = fields[0];
+                    if (segmentName === 'MSH') {
+                        return {
+                            name: segmentName,
+                            fields: [
+                                { value: segmentName },
+                                createSimpleField(fieldSep),
+                                createSimpleField(fields[1]),
+                                ...fields.slice(2).map(parseComplexField)
+                            ]
+                        };
+                    }
+                    return {
+                        name: segmentName,
+                        fields: fields.map((fieldStr, i) => i === 0 ? { value: segmentName } : parseComplexField(fieldStr))
+                    };
+                })
+            };
+        };
+        
+        // --- Rendering Logic ---
+        const renderRawView = () => {
+            if (!parsedMessage) return;
+            rawViewDisplay.innerHTML = '';
+            
+            parsedMessage.segments.forEach((segment, segIndex) => {
+                const lineDiv = document.createElement('div');
+                const fieldSep = (segment.name === 'MSH') ? segment.fields[1].value : parsedMessage.delimiters.fieldSep;
+
+                segment.fields.forEach((field, fIndex) => {
+                    const fieldSpan = document.createElement('span');
+                    if (fIndex > 0) {
+                        fieldSpan.className = 'raw-field rounded px-0.5';
+                        fieldSpan.dataset.segIndex = segIndex;
+                        fieldSpan.dataset.fieldIndex = fIndex;
+                    }
+                    fieldSpan.textContent = field.value;
+                    lineDiv.appendChild(fieldSpan);
+
+                    if (fIndex > 0 && fIndex < segment.fields.length - 1) {
+                         if (!(segment.name === 'MSH' && fIndex === 1)) {
+                             const sepSpan = document.createElement('span');
+                             sepSpan.textContent = fieldSep;
+                             sepSpan.style.color = 'var(--hl7-field)';
+                             lineDiv.appendChild(sepSpan);
+                         }
+                    } else if (fIndex === 0) { // Separator after segment name
+                        const sepSpan = document.createElement('span');
+                        sepSpan.textContent = fieldSep;
+                        sepSpan.style.color = 'var(--hl7-field)';
+                        lineDiv.appendChild(sepSpan);
+                    }
+                });
+                rawViewDisplay.appendChild(lineDiv);
+            });
+            hl7Input.classList.add('hidden');
+            rawViewDisplay.classList.remove('hidden');
+        };
+
+        const renderStructuredView = () => {
+            if (!parsedMessage) {
+                structuredView.innerHTML = '';
+                placeholder.classList.remove('hidden');
+                return;
+            }
+            placeholder.classList.add('hidden');
+            structuredView.innerHTML = '';
+
+            parsedMessage.segments.forEach((segment, segIndex) => {
+                const segDiv = document.createElement('div');
+                segDiv.className = 'segment mb-2';
+                segDiv.dataset.segIndex = segIndex;
+
+                const segHeader = document.createElement('div');
+                segHeader.className = 'segment-name font-bold text-sm mb-1 cursor-pointer flex items-center';
+                segHeader.style.color = 'var(--hl7-segment)';
+
+                const segmentInfo = hl7Dictionary[segment.name] || { desc: "Unknown Segment" };
+                segHeader.innerHTML = `<svg class="chevron-icon h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                                       <span class="hl7-tooltip">${segment.name}<span class="tooltiptext">${segment.name} - ${segmentInfo.desc}</span></span>
+                                       <span class="font-normal text-slate-500 text-xs ml-2">- ${segmentInfo.desc}</span>`;
+                segDiv.appendChild(segHeader);
+
+                const fieldsContainer = document.createElement('div');
+                fieldsContainer.className = 'fields-container pl-4 border-l border-slate-200 ml-3 space-y-1';
+                
+                segment.fields.slice(1).forEach((field, fIndex) => {
+                    const fieldIndex = fIndex + 1;
+                    if (!field.value) return;
+
+                    const fieldDiv = document.createElement('div');
+                    fieldDiv.className = 'field rounded text-xs flex items-start gap-2 py-0.5 px-1';
+                    fieldDiv.dataset.segIndex = segIndex;
+                    fieldDiv.dataset.fieldIndex = fieldIndex;
+
+                    const fieldDef = (segmentInfo.fields && segmentInfo.fields[fieldIndex]) || "Unknown Field";
+                    const fieldDesc = typeof fieldDef === 'object' ? fieldDef.desc : fieldDef;
+
+                    const fieldLabel = document.createElement('div');
+                    fieldLabel.className = 'field-label font-medium text-slate-500 whitespace-nowrap w-20';
+                    fieldLabel.innerHTML = `<span class="hl7-tooltip">${segment.name}-${fieldIndex}<span class="tooltiptext">${fieldDesc}</span></span>`;
+                    fieldDiv.appendChild(fieldLabel);
+
+                    const fieldValue = document.createElement('div');
+                    fieldValue.className = 'field-value font-mono break-all w-full';
+
+                    if (field.repetitions && field.repetitions.length > 1) {
+                         field.repetitions.forEach((rep, repIndex) => {
+                             const repSpan = document.createElement('span');
+                             repSpan.className = 'repetition-item block border-l-2 pl-2 my-1';
+                             repSpan.style.borderColor = 'var(--hl7-repetition)';
+                             repSpan.dataset.repIndex = repIndex;
+                             renderComplexField(rep, repSpan, segIndex, fieldIndex, repIndex);
+                             if (repIndex < field.repetitions.length - 1) {
+                                const tilde = document.createElement('span');
+                                tilde.textContent = ' ~';
+                                tilde.style.color = 'var(--hl7-repetition)';
+                                repSpan.appendChild(tilde);
+                            }
+                             fieldValue.appendChild(repSpan);
+                         });
+                    } else if (field.repetitions && field.repetitions.length === 1) {
+                        renderComplexField(field.repetitions[0], fieldValue, segIndex, fieldIndex, 0);
+                    } 
+                    fieldDiv.appendChild(fieldValue);
+                    fieldsContainer.appendChild(fieldDiv);
+                });
+                
+                segDiv.appendChild(fieldsContainer);
+                structuredView.appendChild(segDiv);
+            });
+        };
+        
+        const renderComplexField = (data, parentElement, segIndex, fieldIndex, repIndex) => {
+            if (data.components.length > 1) {
+                data.components.forEach((comp, compIndex) => {
+                    renderComponent(comp, parentElement, segIndex, fieldIndex, repIndex, compIndex);
+                    if (compIndex < data.components.length - 1) {
+                        const sep = document.createElement('span');
+                        sep.textContent = ' ^ ';
+                        sep.style.color = 'var(--hl7-component)';
+                        parentElement.appendChild(sep);
+                    }
+                });
+            } else {
+                 renderComponent(data.components[0], parentElement, segIndex, fieldIndex, repIndex, 0);
+            }
+        }
+        
+        const renderComponent = (comp, parentElement, segIndex, fieldIndex, repIndex, compIndex) => {
+             const compSpan = document.createElement('span');
+             compSpan.className = 'component inline-block';
+             compSpan.dataset.segIndex = segIndex;
+             compSpan.dataset.fieldIndex = fieldIndex;
+             compSpan.dataset.repIndex = repIndex;
+             compSpan.dataset.compIndex = compIndex;
+             
+             if (comp.subcomponents.length > 1) {
+                 comp.subcomponents.forEach((sub, subIndex) => {
+                     renderSubComponent(sub, compSpan, segIndex, fieldIndex, repIndex, compIndex, subIndex);
+                     if (subIndex < comp.subcomponents.length - 1) {
+                        const sep = document.createElement('span');
+                        sep.textContent = ' & ';
+                        sep.style.color = 'var(--hl7-subcomponent)';
+                        compSpan.appendChild(sep);
+                    }
+                 });
+             } else {
+                 renderSubComponent(comp.subcomponents[0], compSpan, segIndex, fieldIndex, repIndex, compIndex, 0);
+             }
+             parentElement.appendChild(compSpan);
+        };
+
+        const renderSubComponent = (sub, parentElement, segIndex, fieldIndex, repIndex, compIndex, subIndex) => {
+            const subSpan = document.createElement('span');
+            subSpan.className = 'subcomponent inline-block cursor-pointer hover:bg-yellow-100';
+            subSpan.textContent = sub.value;
+            subSpan.dataset.segIndex = segIndex;
+            subSpan.dataset.fieldIndex = fieldIndex;
+            subSpan.dataset.repIndex = repIndex;
+            subSpan.dataset.compIndex = compIndex;
+            subSpan.dataset.subcompIndex = subIndex;
+            parentElement.appendChild(subSpan);
+        };
+
+        const updateDetailsPanel = (element) => {
+            if (!element) {
+                detailsContent.classList.add('hidden');
+                detailsPlaceholder.classList.remove('hidden');
+                return;
+            }
+
+            const fieldElement = element.closest('.field');
+            if (!fieldElement) return;
+
+            const { segIndex, fieldIndex } = fieldElement.dataset;
+            let { repIndex, compIndex, subcompIndex } = element.dataset;
+            repIndex = repIndex || '0'; 
+
+            let path = '', description = 'N/A', dataObject;
+
+            const segment = parsedMessage.segments[segIndex];
+            const segmentInfo = hl7Dictionary[segment.name] || {};
+            const field = segment.fields[fieldIndex];
+            const fieldDef = (segmentInfo.fields && segmentInfo.fields[fieldIndex]) || "Unknown Field";
+            const fieldDesc = typeof fieldDef === 'object' ? fieldDef.desc : fieldDef;
+
+            path = `${segment.name}-${fieldIndex}`;
+            description = fieldDesc;
+            
+            const repetition = field.repetitions[repIndex];
+
+            componentsContainer.classList.add('hidden');
+            subcomponentsContainer.classList.add('hidden');
+            detailedComponentsContainer.classList.add('hidden');
+
+            let component;
+            if (compIndex !== undefined) {
+                 if (repetition.components.length > 1 || (typeof fieldDef === 'object' && fieldDef.components)) {
+                    path += `.${parseInt(compIndex) + 1}`;
+                }
+                component = repetition.components[compIndex];
+                if (subcompIndex !== undefined) {
+                    if (component.subcomponents.length > 1) {
+                         path += `.${parseInt(subcompIndex) + 1}`;
+                    }
+                    dataObject = component.subcomponents[subcompIndex];
+                    let compDef = (typeof fieldDef === 'object' && fieldDef.components) ? fieldDef.components[parseInt(compIndex) + 1] : {};
+                    if(component.subcomponents.length > 1) {
+                        let subCompDesc = (typeof compDef === 'object' && compDef.subcomponents) ? compDef.subcomponents[parseInt(subcompIndex) + 1] : `Sub-component ${parseInt(subcompIndex) + 1}`;
+                        description += ` (${subCompDesc})`;
+                    }
+                } else {
+                    dataObject = component;
+                     if(repetition.components.length > 1) {
+                        let compDesc = (typeof fieldDef === 'object' && fieldDef.components) ? (fieldDef.components[parseInt(compIndex) + 1] || `Component ${parseInt(compIndex) + 1}`) : `Component ${parseInt(compIndex) + 1}`;
+                        if(typeof compDesc === 'object') compDesc = compDesc.desc || `Component ${parseInt(compIndex) + 1}`;
+                        description += ` (${compDesc})`;
+                    }
+                }
+            } else {
+                dataObject = repetition;
+            }
+            
+            if (repetition && repetition.value) {
+                 const hasNamedComponents = typeof fieldDef === 'object' && fieldDef.components;
+
+                 if (hasNamedComponents) {
+                    detailedComponentsContainer.classList.remove('hidden');
+                    detailedComponentsList.innerHTML = '';
+                    repetition.components.forEach((comp, cIndex) => {
+                        const compDef = fieldDef.components[cIndex + 1];
+                        const compName = (typeof compDef === 'object' ? compDef.desc : compDef) || `Component ${cIndex + 1}`;
+                        const compDataset = { segIndex, fieldIndex, repIndex: repIndex || '0', compIndex: cIndex };
+                        const compDetailDiv = createDetailItem(compName, '', comp.value, compDataset);
+                        detailedComponentsList.appendChild(compDetailDiv);
+                    });
+                 } else if (repetition.components.length > 1) { 
+                    componentsContainer.classList.remove('hidden');
+                    componentsList.innerHTML = '';
+                    repetition.components.forEach((comp, cIndex) => {
+                         const compDataset = { segIndex, fieldIndex, repIndex: repIndex || '0', compIndex: cIndex };
+                        componentsList.appendChild(createDetailItem('Component', cIndex + 1, comp.value, compDataset));
+                    });
+                 }
+            }
+
+            if (component && component.value) {
+                const compDef = (typeof fieldDef === 'object' && fieldDef.components) ? fieldDef.components[parseInt(compIndex) + 1] : {};
+                if (typeof compDef === 'object' && compDef.subcomponents) {
+                    subcomponentsContainer.classList.remove('hidden');
+                    subcomponentsList.innerHTML = '';
+                    component.subcomponents.forEach((sub, sIndex) => {
+                        const subcompName = compDef.subcomponents[sIndex + 1] || `Sub-component ${sIndex + 1}`;
+                        const subcompDataset = { segIndex, fieldIndex, repIndex: repIndex || '0', compIndex, subcompIndex: sIndex };
+                        subcomponentsList.appendChild(createDetailItem(subcompName, '', sub.value, subcompDataset));
+                    });
+                }
+            }
+            
+            detailPath.textContent = path;
+            detailDescription.textContent = description;
+            detailValue.value = dataObject.value || '';
+            originalFieldValue = dataObject.value || '';
+            applyChangesBtn.disabled = true;
+            undoChangesBtn.disabled = true;
+            
+            detailsPlaceholder.classList.add('hidden');
+            detailsContent.classList.remove('hidden');
+        };
+
+
+        function createDetailItem(label, index, value, dataset) {
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'flex items-center text-xs p-1 rounded hover:bg-slate-100 cursor-pointer dark:hover:bg-slate-700';
+            Object.keys(dataset).forEach(key => itemDiv.dataset[key] = dataset[key]);
+            
+            itemDiv.innerHTML = `<span class="font-semibold text-slate-500 w-28 dark:text-slate-400">${label}${index ? ' ' + index : ''}:</span>
+                               <span class="font-mono text-slate-700 dark:text-slate-300">${value}</span>`;
+            return itemDiv;
+        }
+
+        // --- Data Update and Sync Logic ---
+        const updateDataFromDetails = () => {
+            if (!selectedElement) return;
+
+            const { segIndex, fieldIndex, repIndex, compIndex, subcompIndex } = selectedElement.dataset;
+            const newValue = detailValue.value;
+            
+            const segment = parsedMessage.segments[segIndex];
+            const field = segment.fields[fieldIndex];
+            const { componentSep, subcomponentSep, repetitionSep } = parsedMessage.delimiters;
+            
+            const rIndex = repIndex || 0;
+            const repetition = field.repetitions[rIndex];
+            const component = compIndex !== undefined ? repetition.components[compIndex] : null;
+            const subcomponent = subcompIndex !== undefined && component ? component.subcomponents[subcompIndex] : null;
+            
+            if (subcomponent) {
+                subcomponent.value = newValue;
+            } else if (component) {
+                component.value = newValue;
+                component.subcomponents = newValue.split(subcomponentSep).map(sc => ({ value: sc }));
+            } else if (repetition) {
+                repetition.value = newValue;
+                repetition.components = newValue.split(componentSep).map(cStr => ({
+                    value: cStr,
+                    subcomponents: cStr.split(subcomponentSep).map(sc => ({ value: sc }))
+                }));
+            }
+           
+            if(repetition) {
+                repetition.components.forEach(comp => {
+                    comp.value = comp.subcomponents.map(s => s.value).join(subcomponentSep);
+                });
+                repetition.value = repetition.components.map(c => c.value).join(componentSep);
+                field.value = field.repetitions.map(r => r.value).join(repetitionSep);
+            }
+            
+            regenerateRawInput();
+            renderRawView();
+            renderStructuredView();
+            
+            const fieldElementSelector = `.field[data-seg-index="${segIndex}"][data-field-index="${fieldIndex}"]`;
+            const fieldElement = structuredView.querySelector(fieldElementSelector);
+
+            if (fieldElement) {
+                let elementToReselect = fieldElement; 
+                const repElement = fieldElement.querySelector(`[data-rep-index="${rIndex}"]`) || fieldElement;
+                
+                if (compIndex !== undefined) {
+                    elementToReselect = repElement.querySelector(`[data-comp-index="${compIndex}"]`) || repElement;
+                }
+                if (subcompIndex !== undefined) {
+                   elementToReselect = elementToReselect.querySelector(`[data-subcomp-index="${subcompIndex}"]`) || elementToReselect;
+                }
+                setSelected(elementToReselect, 'details');
+            }
+        };
+
+
+        const regenerateRawInput = () => {
+            if (!parsedMessage) return;
+            const rawMessage = parsedMessage.segments.map(segment => {
+                const fieldSep = (segment.name === 'MSH') ? segment.fields[1].value : parsedMessage.delimiters.fieldSep;
+                if (segment.name === 'MSH') {
+                    // MSH<sep>encoding<sep>rest...
+                    return segment.name + fieldSep + segment.fields[2].value + fieldSep + segment.fields.slice(3).map(f => f.value).join(fieldSep);
+                }
+                return segment.name + fieldSep + segment.fields.slice(1).map(f => f.value).join(fieldSep);
+            }).join('\r');
+            hl7Input.value = rawMessage;
+        };
+
+
+        // --- Highlighting and Selection ---
+        let highlightTimeout;
+        const setHighlight = (element) => {
+            clearTimeout(highlightTimeout);
+            document.querySelectorAll('.highlight').forEach(el => el.classList.remove('highlight'));
+            if(element) {
+                element.classList.add('highlight');
+                 highlightTimeout = setTimeout(() => {
+                    element.classList.remove('highlight');
+                 }, 2000);
+            }
+        };
+        
+        const setSelected = (element, sourceView = 'structured') => {
+            document.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
+            
+            if (!element) {
+                selectedElement = null;
+                updateDetailsPanel(null);
+                return;
+            }
+            selectedElement = element;
+            updateDetailsPanel(element);
+            element.classList.add('selected');
+            
+            const fieldElement = element.closest('.field');
+            if (fieldElement) fieldElement.classList.add('selected');
+
+            const { segIndex, fieldIndex } = fieldElement.dataset;
+            const rawElement = rawViewDisplay.querySelector(`[data-seg-index="${segIndex}"][data-field-index="${fieldIndex}"]`);
+            if (rawElement) rawElement.classList.add('selected');
+            
+            if (sourceView === 'raw' && fieldElement) {
+                fieldElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            } else if (sourceView === 'structured' && rawElement) {
+                rawElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        };
+
+
+        // --- Event Handlers ---
+        const debounce = (func, delay) => {
+            let timeoutId;
+            return (...args) => {
+                clearTimeout(timeoutId);
+                timeoutId = setTimeout(() => {
+                    func.apply(this, args);
+                }, delay);
+            };
+        };
+
+        const handleParsing = () => {
+            const message = hl7Input.value;
+            if (!message.trim()) {
+                clearBtn.click();
+                return;
+            }
+            parsedMessage = parseHL7(message);
+            if (parsedMessage) {
+                renderRawView();
+                renderStructuredView();
+                exportBtn.disabled = false;
+                setSelected(null);
+
+                const mshSegment = parsedMessage.segments.find(s => s.name === 'MSH');
+                if (mshSegment && mshSegment.fields[9]) {
+                    const msh9 = mshSegment.fields[9];
+                    if (msh9.repetitions[0] && msh9.repetitions[0].components) {
+                        const components = msh9.repetitions[0].components;
+                        const messageCode = components[0] ? components[0].value : '';
+                        const triggerCode = components[1] ? components[1].value : '';
+                        messageTypeDesc.textContent = `${messageTypes[messageCode] || 'Unknown'} (${messageCode})`;
+                        triggerEventDesc.textContent = `${triggerEvents[triggerCode] || 'Unknown'} (${triggerCode})`;
+                        messageInfo.classList.remove('hidden');
+                    }
+                } else {
+                    messageInfo.classList.add('hidden');
+                }
+
+            } else {
+                exportBtn.disabled = true;
+                messageInfo.classList.add('hidden');
+            }
+        };
+
+        hl7Input.addEventListener('input', debounce(handleParsing, 300));
+        
+        templateDropdown.addEventListener('change', (e) => {
+            const templateKey = e.target.value;
+            if(templateKey && messageTemplates[templateKey]) {
+                hl7Input.value = messageTemplates[templateKey];
+                handleParsing();
+            }
+            e.target.value = ""; // Reset dropdown
+        });
+
+        clearBtn.addEventListener('click', () => {
+            hl7Input.value = '';
+            parsedMessage = null;
+            structuredView.innerHTML = '';
+            rawViewDisplay.innerHTML = '';
+            rawViewDisplay.classList.add('hidden');
+            hl7Input.classList.remove('hidden');
+            placeholder.classList.remove('hidden');
+            setSelected(null);
+            exportBtn.disabled = true;
+            messageInfo.classList.add('hidden');
+            messageTypeDesc.textContent = '';
+            triggerEventDesc.textContent = '';
+        });
+        
+        openFileBtn.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    hl7Input.value = e.target.result;
+                    handleParsing();
+                };
+                reader.readAsText(file);
+            }
+        });
+        
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            }, false);
+        });
+        ['dragenter', 'dragover'].forEach(eventName => dropZone.addEventListener(eventName, () => dropZone.classList.add('drag-over'), false));
+        ['dragleave', 'drop'].forEach(eventName => dropZone.addEventListener(eventName, () => dropZone.classList.remove('drag-over'), false));
+        dropZone.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const file = dt.files[0];
+            if (file) {
+                 const reader = new FileReader();
+                reader.onload = (e) => {
+                    hl7Input.value = e.target.result;
+                    handleParsing();
+                };
+                reader.readAsText(file);
+            }
+        });
+
+        rawViewDisplay.addEventListener('click', (e) => {
+            const targetElement = e.target.closest('[data-field-index]');
+            if(targetElement) {
+                const { segIndex, fieldIndex } = targetElement.dataset;
+                const structuredFieldElement = structuredView.querySelector(`.field[data-seg-index="${segIndex}"][data-field-index="${fieldIndex}"]`);
+                if (structuredFieldElement) setSelected(structuredFieldElement, 'raw');
+            }
+        });
+
+        document.body.addEventListener('click', (e) => {
+            if (rawViewDisplay.contains(e.target)) return;
+            
+            const segmentName = e.target.closest('.segment-name');
+            if (segmentName) {
+                segmentName.closest('.segment').classList.toggle('collapsed');
+                return;
+            }
+
+            const targetElement = e.target.closest('[data-seg-index]');
+            if (targetElement && (structuredView.contains(targetElement) || detailsPanel.contains(targetElement))) {
+                setSelected(targetElement);
+            } else if (!detailsPanel.contains(e.target)) {
+                setSelected(null);
+            }
+        });
+
+        document.body.addEventListener('mouseover', (e) => {
+            const targetElement = e.target.closest('[data-seg-index]');
+            if (targetElement && (structuredView.contains(targetElement) || detailsPanel.contains(targetElement))) {
+                setHighlight(targetElement);
+            }
+        });
+        
+        detailValue.addEventListener('input', () => {
+            if (!selectedElement) return;
+            const isChanged = detailValue.value !== originalFieldValue;
+            applyChangesBtn.disabled = !isChanged;
+            undoChangesBtn.disabled = !isChanged;
+        });
+
+        undoChangesBtn.addEventListener('click', () => {
+            if (originalFieldValue !== null) {
+                detailValue.value = originalFieldValue;
+                applyChangesBtn.disabled = true;
+                undoChangesBtn.disabled = true;
+            }
+        });
+
+        applyChangesBtn.addEventListener('click', () => {
+            if (!selectedElement || applyChangesBtn.disabled) return;
+            updateDataFromDetails();
+        });
+
+
+        exportBtn.addEventListener('click', () => {
+            if (!parsedMessage) return;
+            regenerateRawInput();
+            const messageText = hl7Input.value;
+            const blob = new Blob([messageText], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `edited-message-${new Date().toISOString()}.7`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        structuredView.addEventListener('keydown', (e) => {
+            if (!selectedElement) return;
+            const allElements = Array.from(structuredView.querySelectorAll('.subcomponent, .component, .field'));
+            const currentIndex = allElements.indexOf(selectedElement);
+            let nextIndex = -1;
+            if (e.key === 'ArrowDown' || e.key === 'Tab') {
+                e.preventDefault();
+                if (currentIndex < allElements.length - 1) nextIndex = currentIndex + 1;
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (currentIndex > 0) nextIndex = currentIndex - 1;
+            }
+            if (nextIndex !== -1) {
+                const nextElement = allElements[nextIndex];
+                setSelected(nextElement);
+                nextElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        });
+        structuredView.setAttribute('tabindex', 0);
+
+        const setDarkMode = (isDark) => {
+            if (isDark) {
+                document.documentElement.classList.add('dark');
+                sunIcon.classList.add('hidden');
+                moonIcon.classList.remove('hidden');
+                localStorage.setItem('theme', 'dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+                sunIcon.classList.remove('hidden');
+                moonIcon.classList.add('hidden');
+                localStorage.setItem('theme', 'light');
+            }
+        };
+
+        darkModeToggle.addEventListener('click', () => setDarkMode(!document.documentElement.classList.contains('dark')));
+        
+        const init = () => {
+            loadDictionary();
+            exportBtn.disabled = true;
+            const savedTheme = localStorage.getItem('theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            setDarkMode(savedTheme === 'dark' || (!savedTheme && prefersDark));
+        };
+
+        init();
+    });
+    </script>
+</body>
+</html>
+
