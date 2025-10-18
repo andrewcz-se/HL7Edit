@@ -369,77 +369,549 @@
             "ORU_R01": "MSH|^~\\&|LIS|LAB|HIS|HOSPITAL|20251017092600||ORU^R01|MSGID00003|P|2.3\rPID|1||1234567\rOBR|1|||15002-1^GLUCOSE^LN\rOBX|1|NM|15002-1^GLUCOSE^LN||100|mg/dL|70-110|N||F"
         };
         
-        const loadDictionary = async () => {
-            hl7Dictionary = {
-                "MSH": { "desc": "Message Header", "fields": {
-                    "1": "Field Separator", "2": "Encoding Characters", "3": "Sending Application", "4": "Sending Facility",
-                    "5": "Receiving Application", "6": "Receiving Facility", "7": "Date/Time of Message", "8": "Security",
-                    "9": { "desc": "Message Type", "type": "MSG", "components": { "1": "Message Code", "2": "Trigger Event", "3": "Message Structure" }},
-                    "10": "Message Control ID", "11": "Processing ID", "12": "Version ID"
-                }},
-                "PID": { "desc": "Patient Identification", "fields": {
-                    "1": "Set ID - PID", "2": "Patient ID", 
-                    "3": { "desc": "Patient Identifier List", "type": "CX", "components": { 
-                        "1": "ID Number", "2": "Check Digit", "3": "Check Digit Scheme", 
-                        "4": { "desc": "Assigning Authority", "type": "HD", "subcomponents": { "1": "Namespace ID", "2": "Universal ID", "3": "Universal ID Type" }},
-                        "5": "Identifier Type Code"
-                    }},
-                    "4": "Alternate Patient ID - PID",
-                    "5": { "desc": "Patient Name", "type": "XPN", "components": { "1": "Family Name", "2": "Given Name", "3": "Second Name", "4": "Suffix", "5": "Prefix", "6": "Degree" }},
-                    "6": "Mother's Maiden Name", "7": "Date/Time of Birth", "8": "Administrative Sex", "9": "Patient Alias", "10": "Race",
-                    "11": { "desc": "Patient Address", "type": "XAD", "components": { "1": "Street Address", "2": "Other Designation", "3": "City", "4": "State or Province", "5": "Zip or Postal Code", "6": "Country" }},
-                    "12": "County Code", "13": "Phone Number - Home", "14": "Phone Number - Business", "15": "Primary Language", "16": "Marital Status", "17": "Religion",
-                    "18": "Patient Account Number", "19": "SSN Number - Patient"
-                }},
-                "PV1": { "desc": "Patient Visit", "fields": {
-                    "1": "Set ID - PV1", "2": "Patient Class", 
-                    "3": { "desc": "Assigned Patient Location", "type": "PL", "components": { "1": "Point of Care", "2": "Room", "3": "Bed", "4": "Facility", "5": "Location Status" }},
-                    "4": "Admission Type", "5": "Preadmit Number", "6": "Prior Patient Location", 
-                    "7": { "desc": "Attending Doctor", "type": "XCN", "components": { "1": "ID Number", "2": "Family Name", "3": "Given Name", "4": "Second Name", "5": "Suffix", "6": "Prefix" }},
-                    "8": "Referring Doctor", "9": "Consulting Doctor", "10": "Hospital Service", "11": "Temporary Location", "12": "Preadmit Test Indicator", "13": "Re-admission Indicator",
-                    "14": "Admit Source", "15": "Ambulatory Status", "16": "VIP Indicator", "17": "Admitting Doctor", "18": "Patient Type", "19": "Visit Number", "44": "Admit Date/Time", "45": "Discharge Date/Time"
-                }},
-                "ORC": { "desc": "Common Order", "fields": { "1": "Order Control", "2": "Placer Order Number", "3": "Filler Order Number", "9": "Date/Time of Transaction" }},
-                "OBR": { "desc": "Observation Request", "fields": { 
-                    "1": "Set ID - OBR", 
-                    "4": { "desc": "Universal Service Identifier", "type": "CE", "components": { "1": "Identifier", "2": "Text", "3": "Name of Coding System" }},
-                    "7": "Observation Date/Time", "16": "Ordering Provider" }},
-                "OBX": { "desc": "Observation/Result", "fields": { 
-                    "1": "Set ID - OBX", "2": "Value Type", 
-                    "3": { "desc": "Observation Identifier", "type": "CWE", "components": {
-                        "1": "Identifier", "2": "Text", "3": "Name of Coding System",
-                        "4": "Alternate Identifier", "5": "Alternate Text", "6": "Name of Alternate Coding System",
-                        "7": { "desc": "Coding System Version ID", "subcomponents": { "1": "Version ID" }}
-                    }},
-                    "4": "Observation Sub-ID", "5": "Observation Value", 
-                    "6": { "desc": "Units", "type": "CE", "components": { "1": "Identifier", "2": "Text", "3": "Name of Coding System" }},
-                    "7": "References Range", "8": "Abnormal Flags", "11": "Observation Result Status", "14": "Date/Time of the Observation" }},
-                "NK1": { "desc": "Next of Kin", "fields": { "1": "Set ID", "2": "Name", "3": "Relationship", "4": "Address", "5": "Phone Number" }},
-                "IN1": { "desc": "Insurance", "fields": { "1": "Set ID", "2": "Insurance Plan ID", "3": "Insurance Company ID", "4": "Insurance Company Name" }},
-                "DG1": { "desc": "Diagnosis", "fields": { "1": "Set ID", "2": "Diagnosis Coding Method", "3": "Diagnosis Code", "4": "Diagnosis Description" }},
-                "GT1": { "desc": "Guarantor", "fields": { "1": "Set ID", "2": "Guarantor Number", "3": "Guarantor Name", "4": "Guarantor Spouse Name" }},
-                "AL1": { "desc": "Patient Allergy Information", "fields": {
-                    "1": "Set ID - AL1", "2": "Allergen Type Code", 
-                    "3": { "desc": "Allergen Code/Mnemonic/Description", "type": "CWE", "components": { "1": "Identifier", "2": "Text", "3": "Name of Coding System" }},
-                    "4": "Allergy Severity Code", "5": "Allergy Reaction Code", "6": "Identification Date"
-                }},
-                "NTE": { "desc": "Notes and Comments", "fields": {
-                    "1": "Set ID - NTE", "2": "Source of Comment", "3": "Comment", "4": "Comment Type"
-                }},
-                "RXA": { "desc": "Pharmacy/Treatment Administration", "fields": {
-                    "1": "Give Sub-ID Counter", "2": "Administration Sub-ID Counter", "3": "Date/Time Start of Administration", "4": "Date/Time End of Administration",
-                    "5": { "desc": "Administered Code", "type": "CWE", "components": { "1": "Identifier", "2": "Text", "3": "Name of Coding System" }},
-                    "6": "Administered Amount", "7": "Administered Units"
-                }},
-                "RXE": { "desc": "Pharmacy/Treatment Encoded Order", "fields": {
-                    "1": "Quantity/Timing", 
-                    "2": { "desc": "Give Code", "type": "CWE", "components": { "1": "Identifier", "2": "Text", "3": "Name of Coding System" }},
-                    "3": "Give Amount - Minimum", "4": "Give Amount - Maximum",
-                    "5": { "desc": "Give Units", "type": "CWE", "components": { "1": "Identifier", "2": "Text", "3": "Name of Coding System" }}
-                }}
-            };
-        };
-
+const loadDictionary = async () => {
+    hl7Dictionary = {
+        "MSH": { "desc": "Message Header", "fields": {
+            "1": "Field Separator",
+            "2": "Encoding Characters",
+            "3": { "desc": "Sending Application", "type": "HD", "components": { "1": "Namespace ID", "2": "Universal ID", "3": "Universal ID Type" }},
+            "4": { "desc": "Sending Facility", "type": "HD", "components": { "1": "Namespace ID", "2": "Universal ID", "3": "Universal ID Type" }},
+            "5": { "desc": "Receiving Application", "type": "HD", "components": { "1": "Namespace ID", "2": "Universal ID", "3": "Universal ID Type" }},
+            "6": { "desc": "Receiving Facility", "type": "HD", "components": { "1": "Namespace ID", "2": "Universal ID", "3": "Universal ID Type" }},
+            "7": "Date/Time of Message", // TS
+            "8": "Security",
+            "9": { "desc": "Message Type", "type": "MSG", "components": { "1": "Message Code", "2": "Trigger Event", "3": "Message Structure" }},
+            "10": "Message Control ID",
+            "11": "Processing ID", // PT
+            "12": "Version ID", // VID
+            "13": "Sequence Number",
+            "14": "Continuation Pointer",
+            "15": "Accept Acknowledgment Type",
+            "16": "Application Acknowledgment Type",
+            "17": "Country Code",
+            "18": "Character Set",
+            "19": "Principal Language Of Message", // CE
+            "20": "Alternate Character Set Handling Scheme",
+            "21": "Message Profile Identifier" // EI
+        }},
+        "PID": { "desc": "Patient Identification", "fields": {
+            "1": "Set ID - PID",
+            "2": "Patient ID", // CX - Deprecated
+            "3": { "desc": "Patient Identifier List", "type": "CX", "components": {
+                "1": "ID Number",
+                "2": "Check Digit",
+                "3": "Check Digit Scheme",
+                "4": { "desc": "Assigning Authority", "type": "HD", "subcomponents": { "1": "Namespace ID", "2": "Universal ID", "3": "Universal ID Type" }},
+                "5": "Identifier Type Code",
+                "6": { "desc": "Assigning Facility", "type": "HD", "subcomponents": { "1": "Namespace ID", "2": "Universal ID", "3": "Universal ID Type" }},
+                "7": "Effective Date", // DT
+                "8": "Expiration Date", // DT
+                "9": { "desc": "Assigning Jurisdiction", "type": "CWE", "subcomponents": { "1": "Identifier", "2": "Text", "3": "Name of Coding System" }},
+                "10": { "desc": "Assigning Agency or Department", "type": "CWE", "subcomponents": { "1": "Identifier", "2": "Text", "3": "Name of Coding System" }}
+            }},
+            "4": "Alternate Patient ID - PID", // CX - Deprecated
+            "5": { "desc": "Patient Name", "type": "XPN", "components": {
+                "1": { "desc": "Family Name", "type": "FN", "subcomponents": { "1": "Surname", "2": "Own Surname Prefix", "3": "Own Surname", "4": "Surname Prefix from Partner", "5": "Surname from Partner" }},
+                "2": "Given Name",
+                "3": "Second Name or Initials",
+                "4": "Suffix",
+                "5": "Prefix",
+                "6": "Degree",
+                "7": "Name Type Code",
+                "8": "Name Representation Code",
+                "9": { "desc": "Name Context", "type": "CWE", "subcomponents": { "1": "Identifier", "2": "Text", "3": "Name of Coding System" }},
+                "10": "Name Validity Range", // DR
+                "11": "Name Assembly Order"
+            }},
+            "6": { "desc": "Mother's Maiden Name", "type": "XPN", "components": {
+                "1": { "desc": "Family Name", "type": "FN", "subcomponents": { "1": "Surname", "2": "Own Surname Prefix", "3": "Own Surname", "4": "Surname Prefix from Partner", "5": "Surname from Partner" }},
+                "2": "Given Name", "3": "Second Name or Initials", "4": "Suffix", "5": "Prefix", "6": "Degree"
+            }},
+            "7": "Date/Time of Birth", // TS
+            "8": "Administrative Sex",
+            "9": { "desc": "Patient Alias", "type": "XPN", "components": {
+                "1": { "desc": "Family Name", "type": "FN", "subcomponents": { "1": "Surname", "2": "Own Surname Prefix", "3": "Own Surname", "4": "Surname Prefix from Partner", "5": "Surname from Partner" }},
+                "2": "Given Name", "3": "Second Name or Initials", "4": "Suffix", "5": "Prefix", "6": "Degree"
+            }},
+            "10": { "desc": "Race", "type": "CWE", "components": {
+                "1": "Identifier", "2": "Text", "3": "Name of Coding System",
+                "4": "Alternate Identifier", "5": "Alternate Text", "6": "Name of Alternate Coding System",
+                "7": "Coding System Version ID", "8": "Alternate Coding System Version ID", "9": "Original Text"
+            }},
+            "11": { "desc": "Patient Address", "type": "XAD", "components": {
+                "1": "Street Address", // SAD
+                "2": "Other Designation",
+                "3": "City",
+                "4": "State or Province",
+                "5": "Zip or Postal Code",
+                "6": "Country",
+                "7": "Address Type",
+                "8": "Other Geographic Designation",
+                "9": "County/Parish Code",
+                "10": "Census Tract",
+                "11": "Address Representation Code",
+                "12": "Address Validity Range", // DR
+                "13": "Effective Date", // TS
+                "14": "Expiration Date" // TS
+            }},
+            "12": "County Code",
+            "13": { "desc": "Phone Number - Home", "type": "XTN", "components": {
+                "1": "Telephone Number", // TN - Deprecated
+                "2": "Telecommunication Use Code",
+                "3": "Telecommunication Equipment Type",
+                "4": "Email Address",
+                "5": "Country Code",
+                "6": "Area/City Code",
+                "7": "Local Number",
+                "8": "Extension",
+                "9": "Any Text"
+            }},
+            "14": { "desc": "Phone Number - Business", "type": "XTN", "components": {
+                "1": "Telephone Number", // TN - Deprecated
+                "2": "Telecommunication Use Code", "3": "Telecommunication Equipment Type",
+                "4": "Email Address", "5": "Country Code", "6": "Area/City Code",
+                "7": "Local Number", "8": "Extension", "9": "Any Text"
+            }},
+            "15": { "desc": "Primary Language", "type": "CWE", "components": { "1": "Identifier", "2": "Text", "3": "Name of Coding System" }},
+            "16": { "desc": "Marital Status", "type": "CWE", "components": { "1": "Identifier", "2": "Text", "3": "Name of Coding System" }},
+            "17": { "desc": "Religion", "type": "CWE", "components": { "1": "Identifier", "2": "Text", "3": "Name of Coding System" }},
+            "18": "Patient Account Number", // CX
+            "19": "SSN Number - Patient",
+            "20": "Driver's License Number", // DLN
+            "21": "Mother's Identifier", // CX
+            "22": { "desc": "Ethnic Group", "type": "CWE", "components": { "1": "Identifier", "2": "Text", "3": "Name of Coding System" }},
+            "23": "Birth Place",
+            "24": "Multiple Birth Indicator",
+            "25": "Birth Order",
+            "26": "Citizenship", // CWE
+            "27": "Veterans Military Status", // CWE
+            "28": "Nationality", // CWE - Deprecated
+            "29": "Patient Death Date and Time", // TS
+            "30": "Patient Death Indicator"
+        }},
+        "PD1": { "desc": "Patient Additional Demographic", "fields": {
+            "1": "Living Dependency", // CWE
+            "2": "Living Arrangement", // CWE
+            "3": { "desc": "Patient Primary Facility", "type": "XON", "components": {
+                "1": "Organization Name",
+                "2": { "desc": "Organization Name Type Code", "type": "CWE", "subcomponents": { "1": "Identifier", "2": "Text", "3": "Name of Coding System" }},
+                "3": "ID Number", // NM - Deprecated
+                "4": "Check Digit", // NM - Deprecated
+                "5": "Check Digit Scheme", // ID - Deprecated
+                "6": { "desc": "Assigning Authority", "type": "HD", "subcomponents": { "1": "Namespace ID", "2": "Universal ID", "3": "Universal ID Type" }},
+                "7": "Identifier Type Code",
+                "8": { "desc": "Assigning Facility", "type": "HD", "subcomponents": { "1": "Namespace ID", "2": "Universal ID", "3": "Universal ID Type" }},
+                "9": "Name Representation Code",
+                "10": "Organization Identifier"
+            }},
+            "4": "Patient Primary Care Provider", // XCN
+            "5": "Student Indicator", // CWE
+            "6": "Handicap", // CWE
+            "7": "Living Will Code", // CWE
+            "8": "Organ Donor Code", // CWE
+            "9": "Separate Bill",
+            "10": "Duplicate Patient", // CX
+            "11": "Publicity Code", // CWE
+            "12": "Protection Indicator",
+            "13": "Protection Indicator Effective Date", // DT
+            "14": { "desc": "Place of Worship", "type": "XON", "components": { "1": "Organization Name", "6": "Assigning Authority" }},
+            "15": "Advance Directive Code", // CWE
+            "16": "Immunization Registry Status", // CWE
+            "17": "Immunization Registry Status Effective Date", // DT
+            "18": "Publicity Code Effective Date", // DT
+            "19": "Military Branch", // CWE
+            "20": "Military Rank/Grade", // CWE
+            "21": "Military Status" // CWE
+        }},
+        "PV1": { "desc": "Patient Visit", "fields": {
+            "1": "Set ID - PV1",
+            "2": "Patient Class",
+            "3": { "desc": "Assigned Patient Location", "type": "PL", "components": {
+                "1": "Point of Care",
+                "2": "Room",
+                "3": "Bed",
+                "4": { "desc": "Facility", "type": "HD", "subcomponents": { "1": "Namespace ID", "2": "Universal ID", "3": "Universal ID Type" }},
+                "5": "Location Status",
+                "6": "Person Location Type",
+                "7": "Building",
+                "8": "Floor",
+                "9": "Location Description",
+                "10": { "desc": "Comprehensive Location Identifier", "type": "EI", "subcomponents": { "1": "Entity Identifier", "2": "Namespace ID", "3": "Universal ID", "4": "Universal ID Type" }},
+                "11": { "desc": "Assigning Authority For Location", "type": "HD", "subcomponents": { "1": "Namespace ID", "2": "Universal ID", "3": "Universal ID Type" }}
+            }},
+            "4": "Admission Type",
+            "5": "Preadmit Number", // CX
+            "6": { "desc": "Prior Patient Location", "type": "PL", "components": { "1": "Point of Care", "2": "Room", "3": "Bed" }},
+            "7": { "desc": "Attending Doctor", "type": "XCN", "components": {
+                "1": "ID Number",
+                "2": { "desc": "Family Name", "type": "FN", "subcomponents": { "1": "Surname", "2": "Own Surname Prefix", "3": "Own Surname" }},
+                "3": "Given Name", "4": "Second Name", "5": "Suffix", "6": "Prefix", "7": "Degree",
+                "8": "Source Table",
+                "9": { "desc": "Assigning Authority", "type": "HD", "subcomponents": { "1": "Namespace ID", "2": "Universal ID", "3": "Universal ID Type" }},
+                "10": "Name Type Code",
+                "11": "Identifier Check Digit",
+                "12": "Check Digit Scheme",
+                "13": "Identifier Type Code",
+                "14": { "desc": "Assigning Facility", "type": "HD", "subcomponents": { "1": "Namespace ID", "2": "Universal ID", "3": "Universal ID Type" }},
+                "15": "Name Representation Code"
+            }},
+            "8": "Referring Doctor", // XCN
+            "9": "Consulting Doctor", // XCN
+            "10": "Hospital Service",
+            "11": { "desc": "Temporary Location", "type": "PL", "components": { "1": "Point of Care", "2": "Room", "3": "Bed" }},
+            "12": "Preadmit Test Indicator",
+            "13": "Re-admission Indicator",
+            "14": "Admit Source",
+            "15": "Ambulatory Status",
+            "16": "VIP Indicator",
+            "17": "Admitting Doctor", // XCN
+            "18": "Patient Type",
+            "19": "Visit Number", // CX
+            "20": "Financial Class", // FC
+            "21": "Charge Price Indicator",
+            "22": "Courtesy Code",
+            "23": "Credit Rating",
+            "24": "Contract Code",
+            "25": "Contract Effective Date", // DT
+            "26": "Contract Amount",
+            "27": "Contract Period",
+            "28": "Interest Code",
+            "29": "Transfer to Bad Debt Code",
+            "30": "Transfer to Bad Debt Date", // DT
+            "31": "Bad Debt Agency Code",
+            "32": "Bad Debt Transfer Amount",
+            "33": "Bad Debt Recovery Amount",
+            "34": "Delete Account Indicator",
+            "35": "Delete Account Date", // DT
+            "36": { "desc": "Discharge Disposition", "type": "CWE", "components": { "1": "Identifier", "2": "Text", "3": "Name of Coding System" }},
+            "37": { "desc": "Discharged to Location", "type": "DLD", "components": {
+                "1": { "desc": "Discharge Location", "type": "CWE", "subcomponents": { "1": "Identifier", "2": "Text", "3": "Name of Coding System" }},
+                "2": "Effective Date" // DTM
+            }},
+            "38": { "desc": "Diet Type", "type": "CWE", "components": { "1": "Identifier", "2": "Text", "3": "Name of Coding System" }},
+            "39": "Servicing Facility",
+            "40": "Bed Status",
+            "41": "Account Status",
+            "42": { "desc": "Pending Location", "type": "PL", "components": { "1": "Point of Care", "2": "Room", "3": "Bed" }},
+            "43": { "desc": "Prior Temporary Location", "type": "PL", "components": { "1": "Point of Care", "2": "Room", "3": "Bed" }},
+            "44": "Admit Date/Time", // TS
+            "45": "Discharge Date/Time", // TS
+            "46": "Current Patient Balance",
+            "47": "Total Charges",
+            "48": "Total Adjustments",
+            "49": "Total Payments",
+            "50": "Alternate Visit ID", // CX
+            "51": "Visit Indicator",
+            "52": "Other Healthcare Provider" // XCN
+        }},
+        "SCH": { "desc": "Scheduling Activity Information", "fields": {
+            "1": { "desc": "Placer Appointment ID", "type": "EI", "components": { "1": "Entity Identifier", "2": "Namespace ID", "3": "Universal ID", "4": "Universal ID Type" }},
+            "2": { "desc": "Filler Appointment ID", "type": "EI", "components": { "1": "Entity Identifier", "2": "Namespace ID", "3": "Universal ID", "4": "Universal ID Type" }},
+            "3": "Occurrence Number",
+            "4": { "desc": "Placer Group Number", "type": "EI", "components": { "1": "Entity Identifier", "2": "Namespace ID", "3": "Universal ID", "4": "Universal ID Type" }},
+            "5": { "desc": "Schedule ID", "type": "CWE", "components": { "1": "Identifier", "2": "Text", "3": "Name of Coding System" }},
+            "6": { "desc": "Event Reason", "type": "CWE", "components": { "1": "Identifier", "2": "Text", "3": "Name of Coding System" }},
+            "7": { "desc": "Appointment Reason", "type": "CWE", "components": { "1": "Identifier", "2": "Text", "3": "Name of Coding System" }},
+            "8": { "desc": "Appointment Type", "type": "CWE", "components": { "1": "Identifier", "2": "Text", "3": "Name of Coding System" }},
+            "9": "Appointment Duration", // Deprecated
+            "10": "Appointment Duration Units", // CE - Deprecated
+            "11": { "desc": "Appointment Timing Quantity", "type": "TQ", "components": {
+                "1": { "desc": "Quantity", "type": "CQ", "subcomponents": { "1": "Quantity", "2": "Units"}},
+                "2": "Interval", "3": "Duration", "4": "Start Date/Time", // TS
+                "5": "End Date/Time", // TS
+                "6": "Priority", "7": "Condition", "8": "Text", "9": "Conjunction", "10": "Order Sequencing", "11": "Occurrence Duration", "12": "Total Occurrences"
+            }},
+            "12": "Placer Contact Person", // XCN
+            "13": "Placer Contact Phone Number", // XTN
+            "14": "Placer Contact Address", // XAD
+            "15": "Placer Contact Location", // PL
+            "16": "Filler Contact Person", // XCN
+            "17": "Filler Contact Phone Number", // XTN
+            "18": "Filler Contact Address", // XAD
+            "19": "Filler Contact Location", // PL
+            "20": "Entered By Person", // XCN
+            "21": "Entered By Phone Number", // XTN
+            "22": "Entered By Location", // PL
+            "23": { "desc": "Parent Placer Appointment ID", "type": "EI", "components": { "1": "Entity Identifier" }},
+            "24": { "desc": "Parent Filler Appointment ID", "type": "EI", "components": { "1": "Entity Identifier" }},
+            "25": { "desc": "Filler Status Code", "type": "CWE", "components": { "1": "Identifier", "2": "Text", "3": "Name of Coding System" }},
+            "26": { "desc": "Placer Order Number", "type": "EI", "components": { "1": "Entity Identifier", "2": "Namespace ID" }},
+            "27": { "desc": "Filler Order Number", "type": "EI", "components": { "1": "Entity Identifier", "2": "Namespace ID" }}
+        }},
+        "RGS": { "desc": "Resource Group", "fields": {
+            "1": "Set ID - RGS",
+            "2": "Segment Action Code",
+            "3": { "desc": "Resource Group ID", "type": "CWE", "components": { "1": "Identifier", "2": "Text", "3": "Name of Coding System" }}
+        }},
+        "AIL": { "desc": "Appointment Information - Location Resource", "fields": {
+            "1": "Set ID - AIL",
+            "2": "Segment Action Code",
+            "3": { "desc": "Location Resource ID", "type": "PL", "components": { "1": "Point of Care", "2": "Room", "3": "Bed", "4": "Facility" }},
+            "4": { "desc": "Location Type", "type": "CWE", "components": { "1": "Identifier", "2": "Text", "3": "Name of Coding System" }},
+            "5": { "desc": "Location Group", "type": "CWE", "components": { "1": "Identifier", "2": "Text", "3": "Name of Coding System" }},
+            "6": "Start Date/Time", // TS
+            "7": "Start Date/Time Offset",
+            "8": { "desc": "Start Date/Time Offset Units", "type": "CNE", "components": { "1": "Identifier", "2": "Text", "3": "Name of Coding System" }},
+            "9": "Duration",
+            "10": { "desc": "Duration Units", "type": "CNE", "components": { "1": "Identifier", "2": "Text", "3": "Name of Coding System" }},
+            "11": "Allow Substitution Code",
+            "12": { "desc": "Filler Status Code", "type": "CWE", "components": { "1": "Identifier", "2": "Text", "3": "Name of Coding System" }}
+        }},
+        "AIP": { "desc": "Appointment Information - Personnel Resource", "fields": {
+            "1": "Set ID - AIP",
+            "2": "Segment Action Code",
+            "3": { "desc": "Personnel Resource ID", "type": "XCN", "components": { "1": "ID Number", "2": "Family Name", "3": "Given Name" }},
+            "4": { "desc": "Resource Type", "type": "CWE", "components": { "1": "Identifier", "2": "Text", "3": "Name of Coding System" }},
+            "5": { "desc": "Resource Group", "type": "CWE", "components": { "1": "Identifier", "2": "Text", "3": "Name of Coding System" }},
+            "6": "Start Date/Time", // TS
+            "7": "Start Date/Time Offset",
+            "8": { "desc": "Start Date/Time Offset Units", "type": "CNE", "components": { "1": "Identifier", "2": "Text", "3": "Name of Coding System" }},
+            "9": "Duration",
+            "10": { "desc": "Duration Units", "type": "CNE", "components": { "1": "Identifier", "2": "Text", "3": "Name of Coding System" }},
+            "11": "Allow Substitution Code",
+            "12": { "desc": "Filler Status Code", "type": "CWE", "components": { "1": "Identifier", "2": "Text", "3": "Name of Coding System" }}
+        }},
+        "AIG": { "desc": "Appointment Information - General Resource", "fields": {
+            "1": "Set ID - AIG",
+            "2": "Segment Action Code",
+            "3": { "desc": "Resource ID", "type": "CWE", "components": { "1": "Identifier", "2": "Text", "3": "Name of Coding System" }},
+            "4": { "desc": "Resource Type", "type": "CWE", "components": { "1": "Identifier", "2": "Text", "3": "Name of Coding System" }},
+            "5": { "desc": "Resource Group", "type": "CWE", "components": { "1": "Identifier", "2": "Text", "3": "Name of Coding System" }},
+            "6": "Resource Quantity",
+            "7": { "desc": "Resource Quantity Units", "type": "CNE", "components": { "1": "Identifier", "2": "Text", "3": "Name of Coding System" }},
+            "8": "Start Date/Time", // DTM
+            "9": "Start Date/Time Offset",
+            "10": { "desc": "Start Date/Time Offset Units", "type": "CNE", "components": { "1": "Identifier", "2": "Text", "3": "Name of Coding System" }},
+            "11": "Duration",
+            "12": { "desc": "Duration Units", "type": "CNE", "components": { "1": "Identifier", "2": "Text", "3": "Name of Coding System" }},
+            "13": "Allow Substitution Code", // CWE
+            "14": "Filler Status Code" // CWE
+        }},
+        "ORC": { "desc": "Common Order", "fields": {
+            "1": "Order Control",
+            "2": { "desc": "Placer Order Number", "type": "EI", "components": { "1": "Entity Identifier", "2": "Namespace ID", "3": "Universal ID", "4": "Universal ID Type" }},
+            "3": { "desc": "Filler Order Number", "type": "EI", "components": { "1": "Entity Identifier", "2": "Namespace ID", "3": "Universal ID", "4": "Universal ID Type" }},
+            "4": "Placer Group Number", // EI
+            "5": "Order Status",
+            "6": "Response Flag",
+            "7": "Quantity/Timing", // TQ - Deprecated
+            "8": "Parent", // EIP
+            "9": "Date/Time of Transaction", // DTM
+            "10": "Entered By", // XCN
+            "11": "Verified By", // XCN
+            "12": "Ordering Provider", // XCN
+            "13": "Enterer's Location", // PL
+            "14": "Call Back Phone Number", // XTN
+            "15": "Order Effective Date/Time", // DTM
+            "16": "Order Control Code Reason", // CWE
+            "17": "Entering Organization", // CWE
+            "18": "Entering Device", // CWE
+            "19": "Action By", // XCN
+            "20": "Advanced Beneficiary Notice Code", // CWE
+            "21": "Ordering Facility Name", // XON
+            "22": "Ordering Facility Address", // XAD
+            "23": "Ordering Facility Phone Number", // XTN
+            "24": "Ordering Provider Address", // XAD
+            "25": "Order Status Modifier" // CWE
+        }},
+        "OBR": { "desc": "Observation Request", "fields": {
+            "1": "Set ID - OBR",
+            "2": { "desc": "Placer Order Number", "type": "EI", "components": { "1": "Entity Identifier", "2": "Namespace ID", "3": "Universal ID", "4": "Universal ID Type" }},
+            "3": { "desc": "Filler Order Number", "type": "EI", "components": { "1": "Entity Identifier", "2": "Namespace ID", "3": "Universal ID", "4": "Universal ID Type" }},
+            "4": { "desc": "Universal Service Identifier", "type": "CWE", "components": {
+                "1": "Identifier", "2": "Text", "3": "Name of Coding System",
+                "4": "Alternate Identifier", "5": "Alternate Text", "6": "Name of Alternate Coding System"
+            }},
+            "5": "Priority", // Deprecated
+            "6": "Requested Date/Time", // TS - Deprecated
+            "7": "Observation Date/Time", // DTM
+            "8": "Observation End Date/Time", // DTM
+            "9": "Collection Volume", // CQ
+            "10": "Collector Identifier", // XCN
+            "11": "Specimen Action Code",
+            "12": "Danger Code", // CWE
+            "13": "Relevant Clinical Information", // CWE
+            "14": "Specimen Received Date/Time", // DTM
+            "15": "Specimen Source", // SPS
+            "16": "Ordering Provider", // XCN
+            "17": "Order Callback Phone Number", // XTN
+            "18": "Placer Field 1",
+            "19": "Placer Field 2",
+            "20": "Filler Field 1",
+            "21": "Filler Field 2",
+            "22": "Results Rpt/Status Chng Date/Time", // DTM
+            "23": "Charge to Practice", // MOC
+            "24": "Diagnostic Serv Sect ID",
+            "25": "Result Status",
+            "26": "Parent Result", // PRL
+            "27": "Quantity/Timing", // TQ
+            "28": "Result Copies To", // XCN
+            "29": "Parent", // EIP
+            "30": "Transportation Mode",
+            "31": "Reason for Study", // CWE
+            "32": "Principal Result Interpreter", // NDL
+            "33": "Assistant Result Interpreter", // NDL
+            "34": "Technician", // NDL
+            "35": "Transcriber", // NDL
+            "36": "Scheduled Date/Time" // DTM
+        }},
+        "OBX": { "desc": "Observation/Result", "fields": {
+            "1": "Set ID - OBX",
+            "2": "Value Type",
+            "3": { "desc": "Observation Identifier", "type": "CWE", "components": {
+                "1": "Identifier",
+                "2": "Text",
+                "3": "Name of Coding System",
+                "4": "Alternate Identifier",
+                "5": "Alternate Text",
+                "6": "Name of Alternate Coding System",
+                "7": { "desc": "Coding System Version ID", "subcomponents": { "1": "Version ID" }},
+                "8": "Alternate Coding System Version ID",
+                "9": "Original Text"
+            }},
+            "4": "Observation Sub-ID",
+            "5": "Observation Value", // Varies
+            "6": { "desc": "Units", "type": "CWE", "components": {
+                "1": "Identifier", "2": "Text", "3": "Name of Coding System"
+            }},
+            "7": "References Range",
+            "8": "Abnormal Flags",
+            "9": "Probability",
+            "10": "Nature of Abnormal Test",
+            "11": "Observation Result Status",
+            "12": "Effective Date of Reference Range", // DTM
+            "13": "User Defined Access Checks",
+            "14": "Date/Time of the Observation", // DTM
+            "15": "Producer's ID", // CWE
+            "16": "Responsible Observer", // XCN
+            "17": "Observation Method", // CWE
+            "18": "Equipment Instance Identifier", // EI
+            "19": "Date/Time of the Analysis", // DTM
+            "20": "Observation Site" // CWE
+        }},
+        "NTE": { "desc": "Notes and Comments", "fields": {
+            "1": "Set ID - NTE",
+            "2": "Source of Comment",
+            "3": "Comment",
+            "4": { "desc": "Comment Type", "type": "CWE", "components": { "1": "Identifier", "2": "Text", "3": "Name of Coding System" }}
+        }},
+        "NK1": { "desc": "Next of Kin", "fields": {
+            "1": "Set ID - NK1",
+            "2": { "desc": "Name", "type": "XPN", "components": {
+                "1": { "desc": "Family Name", "type": "FN", "subcomponents": { "1": "Surname", "2": "Own Surname Prefix", "3": "Own Surname" }},
+                "2": "Given Name", "3": "Second Name", "4": "Suffix", "5": "Prefix"
+            }},
+            "3": { "desc": "Relationship", "type": "CWE", "components": { "1": "Identifier", "2": "Text", "3": "Name of Coding System" }},
+            "4": { "desc": "Address", "type": "XAD", "components": {
+                "1": "Street Address", "2": "Other Designation", "3": "City",
+                "4": "State or Province", "5": "Zip or Postal Code", "6": "Country"
+            }},
+            "5": { "desc": "Phone Number", "type": "XTN", "components": { "1": "Telephone Number", "2": "Telecommunication Use Code", "3": "Telecommunication Equipment Type" }},
+            "6": "Business Phone Number", // XTN
+            "7": "Contact Role", // CWE
+            "8": "Start Date", // DT
+            "9": "End Date", // DT
+            "10": "Job Title",
+            "11": "Job Code/Class", // JCC
+            "12": "Employee Number", // CX
+            "13": "Organization Name", // XON
+            "14": "Marital Status", // CWE
+            "15": "Administrative Sex",
+            "16": "Date/Time of Birth", // DTM
+            "17": "Living Dependency", // CWE
+            "18": "Ambulatory Status", // CWE
+            "19": "Citizenship", // CWE
+            "20": "Primary Language", // CWE
+            "21": "Living Arrangement", // CWE
+            "22": "Publicity Code", // CWE
+            "23": "Protection Indicator",
+            "24": "Student Indicator", // CWE
+            "25": "Religion", // CWE
+            "26": "Mother's Maiden Name", // XPN
+            "27": "Nationality", // CWE
+            "28": "Ethnic Group", // CWE
+            "29": "Contact Reason" // CWE
+        }},
+        "IN1": { "desc": "Insurance", "fields": {
+            "1": "Set ID - IN1",
+            "2": "Insurance Plan ID", // CWE
+            "3": "Insurance Company ID", // CX
+            "4": "Insurance Company Name", // XON
+            "5": "Insurance Company Address", // XAD
+            "6": "Insurance Co Contact Person", // XPN
+            "7": "Insurance Co Phone Number", // XTN
+            "8": "Group Number",
+            "9": "Group Name", // XON
+            "10": "Insured's Group Emp ID", // CX
+            "11": "Insured's Group Emp Name", // XON
+            "12": "Plan Effective Date", // DT
+            "13": "Plan Expiration Date", // DT
+            "14": "Authorization Information", // AUI
+            "15": "Plan Type",
+            "16": "Name Of Insured", // XPN
+            "17": "Insured's Relationship To Patient", // CWE
+            "18": "Insured's Date Of Birth", // DTM
+            "19": "Insured's Address" // XAD
+        }},
+        "DG1": { "desc": "Diagnosis", "fields": {
+            "1": "Set ID - DG1",
+            "2": "Diagnosis Coding Method",
+            "3": { "desc": "Diagnosis Code", "type": "CWE", "components": { "1": "Identifier", "2": "Text", "3": "Name of Coding System" }},
+            "4": "Diagnosis Description",
+            "5": "Diagnosis Date/Time", // DTM
+            "6": "Diagnosis Type",
+            "7": "Major Diagnostic Category", // CWE
+            "8": "Diagnostic Related Group", // CWE
+            "9": "DRG Approval Indicator",
+            "10": "DRG Grouper Review Code",
+            "11": "Outlier Type", // CWE
+            "12": "Outlier Days",
+            "13": "Outlier Cost", // CP
+            "14": "Grouper Version And Type",
+            "15": "Diagnosis Priority",
+            "16": "Diagnosing Clinician", // XCN
+            "17": "Diagnosis Classification",
+            "18": "Confidential Indicator",
+            "19": "Attestation Date/Time", // DTM
+            "20": "Diagnosis Identifier", // EI
+            "21": "Diagnosis Action Code"
+        }},
+        "GT1": { "desc": "Guarantor", "fields": {
+            "1": "Set ID - GT1",
+            "2": "Guarantor Number", // CX
+            "3": "Guarantor Name", // XPN
+            "4": "Guarantor Spouse Name", // XPN
+            "5": "Guarantor Address", // XAD
+            "6": "Guarantor Ph Num - Home", // XTN
+            "7": "Guarantor Ph Num - Business", // XTN
+            "8": "Guarantor Date/Time Of Birth", // DTM
+            "9": "Guarantor Administrative Sex",
+            "10": "Guarantor Type",
+            "11": "Guarantor Relationship", // CWE
+            "12": "Guarantor SSN",
+            "13": "Guarantor Date - Begin", // DT
+            "14": "Guarantor Date - End", // DT
+            "15": "Guarantor Priority",
+            "16": "Guarantor Employer Name", // XPN
+            "17": "Guarantor Employer Address", // XAD
+            "18": "Guarantor Employer Phone Number", // XTN
+            "19": "Guarantor Employee ID Number", // CX
+            "20": "Guarantor Employment Status",
+            "21": "Guarantor Organization Name" // XON
+        }},
+        "AL1": { "desc": "Patient Allergy Information", "fields": {
+            "1": "Set ID - AL1",
+            "2": { "desc": "Allergen Type Code", "type": "CWE", "components": { "1": "Identifier", "2": "Text", "3": "Name of Coding System" }},
+            "3": { "desc": "Allergen Code/Mnemonic/Description", "type": "CWE", "components": {
+                "1": "Identifier", "2": "Text", "3": "Name of Coding System",
+                "4": "Alternate Identifier", "5": "Alternate Text", "6": "Name of Alternate Coding System"
+            }},
+            "4": { "desc": "Allergy Severity Code", "type": "CWE", "components": { "1": "Identifier", "2": "Text", "3": "Name of Coding System" }},
+            "5": "Allergy Reaction Code",
+            "6": "Identification Date" // DT - Deprecated
+        }}
+    };
+};
         // --- Parsing Logic ---
         const parseHL7 = (message) => {
             if (!message || !message.startsWith('MSH')) {
